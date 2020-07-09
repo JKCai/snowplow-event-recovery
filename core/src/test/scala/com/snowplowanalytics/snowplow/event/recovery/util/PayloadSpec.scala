@@ -48,6 +48,14 @@ class PayloadSpec extends WordSpec with ScalaCheckPropertyChecks with EitherValu
         unifiedP shouldEqual unifiedNewP
       }
     }
+    "cocoerce and coerce the collector payload" in {
+      forAll { (cp: CollectorPayload) =>
+        val p     = payload.cocoerce(cp)
+        val newCp = payload.coerce(p.right.value)
+
+        cp shouldEqual nullify(newCp.right.value)
+      }
+    }
   }
 
   private[this] val unify = (p: Payload.CollectorPayload) => {
@@ -58,6 +66,15 @@ class PayloadSpec extends WordSpec with ScalaCheckPropertyChecks with EitherValu
       }
 
     p.copy(querystring = unifyToNone(p.querystring))
+  }
+
+  private[this] val nullify = (cp: CollectorPayload) => {
+    cp.schema = null
+    if (cp.collector.isEmpty()) cp.collector     = null
+    if (cp.encoding.isEmpty()) cp.encoding       = null
+    if (cp.headers.isEmpty()) cp.headers         = null
+    if (cp.querystring.isEmpty()) cp.querystring = null
+    cp
   }
 
 }
