@@ -18,33 +18,32 @@ package util
 import java.net.{URLDecoder, URLEncoder}
 import java.nio.charset.StandardCharsets.UTF_8
 import cats.implicits._
+import cats.Show
 import atto._, Atto._
 import com.snowplowanalytics.snowplow.badrows.NVP
 import domain._
 
 object querystring {
 
-  def params(querystring: String) = {
-    val parser = ((stringOf(noneOf("&=")) <~ char('=')) ~ stringOf(notChar('&'))).sepBy(char('&'))
-    val parsed = parser.parse(querystring).map(_.toMap).done
+  def params(qs: String) = {
+    val parsed = parsec.querystring.parse(qs).map(_.toMap).done
     (parsed.either match {
       case Right(r) if r.isEmpty => Left("empty")
       case Right(r)              => Right(r)
       case Left(l)               => Left(l)
-    }).leftMap(err => unexpectedFormat(querystring, err.some))
+    }).leftMap(err => unexpectedFormat(qs, err.some))
   }
 
-  def clean(param: String) = {
-    val prefixes = "{{" :: "%{{" :: "${{" :: "{" :: "%{" :: "${" :: "[[" :: "[" :: Nil
-    val suffixes = "}}" :: "}" :: "]" :: Nil
-    val banned   = "()[]{}$"
-
-    val parser =
-      bracket(choice(prefixes.map(string)), stringOf(noneOf(suffixes.mkString)), choice(suffixes.map(string))) |
-        stringOf(noneOf(banned))
-
-    parser.parse(param).done.option.getOrElse("")
-  }
+  def clean(param: String) =
+    parsec
+      .queryparam
+      .parse(param)
+      .done
+      .option
+      .map { v =>
+        v.map(QueryChar.normalize).mkString
+      }
+      .getOrElse("")
 
   // FIXME use parser combinator
   def toNVP(s: String) = {
@@ -62,7 +61,6 @@ object querystring {
         case _                    => Empty
       }
     val split = (s: String) => s.split("&").toList.flatMap(toNVP)
-
     Option(s).map(split).getOrElse(Empty)
   }
 
@@ -71,7 +69,7 @@ object querystring {
 
   def fromNVP(ns: List[NVP]) = {
     val urlEncode = (str: String) => URLEncoder.encode(str, UTF_8.toString)
-    val show      = (n: NVP)      => s"${n.name}=${urlEncode(n.value.getOrElse(""))}"
+    val show      = (n: NVP) => s"${n.name}=${urlEncode(n.value.getOrElse(""))}"
 
     ns.map(show).mkString("&")
   }
@@ -81,5 +79,4 @@ object querystring {
 
   private[this] def unexpectedFormat(data: String, error: Option[String]) =
     UnexpectedFieldFormat(data, "querystring", "k1=v1&k2=v2".some, error)
-
 }
