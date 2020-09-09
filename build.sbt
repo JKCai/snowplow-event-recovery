@@ -71,3 +71,5 @@ lazy val spark =
       ) ++ Dependencies.spark ++ Dependencies.decline,
       dependencyOverrides += Dependencies.jackson
     )
+
+enablePlugins(GitVersioning)
