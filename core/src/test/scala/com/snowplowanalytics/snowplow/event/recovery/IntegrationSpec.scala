@@ -25,17 +25,17 @@ import com.snowplowanalytics.snowplow.enrich.common.EtlPipeline
 import com.snowplowanalytics.snowplow.enrich.common.enrichments.EnrichmentRegistry
 import com.snowplowanalytics.snowplow.enrich.common.loaders.ThriftLoader
 import com.snowplowanalytics.iglu.client.Client
-
 import config._
 import json.confD
 import gens.idClock
 import com.snowplowanalytics.snowplow.enrich.common.adapters.AdapterRegistry
-import com.snowplowanalytics.snowplow.badrows.Processor
+import com.snowplowanalytics.snowplow.badrows.{BadRow, Processor}
+import com.snowplowanalytics.snowplow.enrich.common.outputs.EnrichedEvent
 import org.joda.time.DateTime
 
 class IntegrationSpec extends WordSpec with Inspectors {
   val resolverConfig =
-    """{"schema":"iglu:com.snowplowanalytics.iglu/resolver-config/jsonschema/1-0-1","data":{"cacheSize":0,"repositories":[{"name": "Iglu Central","priority": 0,"vendorPrefixes": [ "com.snowplowanalytics" ],"connection": {"http":{"uri":"http://iglucentral.com"}}},{"name":"Priv","priority":0,"vendorPrefixes":["com.snowplowanalytics"],"connection":{"http":{"uri":"http://iglucentral-dev.com.s3-website-us-east-1.amazonaws.com/release/r114"}}}]}}"""
+    """{"schema":"iglu:com.snowplowanalytics.iglu/resolver-config/jsonschema/1-0-2","data":{"cacheSize":500,"cacheTtl":3600,"repositories":[{"name":"Iglu Central","priority":0,"vendorPrefixes":["com.snowplowanalytics"],"connection":{"http":{"uri":"http://iglucentral.com"}}},{"name":"REA Group","priority":1,"vendorPrefixes":["au.com.realestate","com.reagroup"],"connection":{"http":{"uri":"http://iglu.data.e2e.realestate.com.au"}}}]}}"""
 
   val enrichmentsConfig =
     """{"schema": "iglu:com.snowplowanalytics.snowplow/enrichments/jsonschema/1-0-0", "data": []}"""
@@ -59,11 +59,21 @@ class IntegrationSpec extends WordSpec with Inspectors {
 
   "IntegrationSpec" in {
 
-    val conf = decode[Conf](
+    val temp = decode[Conf](
       Source.fromResource("recovery_scenarios.json").mkString
-    ).right.get.data
+    )
 
-    val enriched = Source
+    println("=================")
+    println(temp)
+    println("=================")
+
+    val conf: Config = temp.right.get.data
+
+//    println("=================")
+//    println(conf)
+//    println("=================")
+
+    val enriched: Seq[Either[BadRow, EnrichedEvent]] = Source
       .fromResource("bad_rows.json")
       .getLines
       .toList

@@ -48,99 +48,33 @@
     ],    
     "iglu:com.snowplowanalytics.snowplow.badrows/enrichment_failures/jsonschema/1-0-*": [
       {
-        "name": "main flow making use of most of available features",
-        "conditions": [
-          {
-            "op": "Test",
-            "path": "$.processor.artifact",
-            "value": {
-              "value": "beam-enrich"
-            }
-          },
-          {
-            "op": "Test",
-            "path": "$.payload.raw.vendor",
-            "value": {
-              "regex": "com.snowplow\\.*"
-            }
-          },
-          {
-            "op": "Test",
-            "path": "$.processor.artifact",
-            "value": {
-              "size": {
-                "eq": 11
-              }
-            }
-          },
-          {
-            "op": "Test",
-            "path": "$.processor.artifact",
-            "value": {
-              "size": {
-                "gt": 3
-              }
-            }
-          },
-          {
-            "op": "Test",
-            "path": "$.processor.artifact",
-            "value": {
-              "size": {
-                "lt": 30
-              }
-            }
-          }
-        ],
-        "steps": [
-          {
-            "op": "Replace",
-            "path": "$.raw.refererUri",
-            "match": "(?U)^.*$",
-            "value": "https://console.snplow.com/"
-          },
-          {
-            "op": "Remove",
-            "path": "$.raw.parameters.aid"
-          },
-          {
-            "op": "Replace",
-            "path": "$.raw.parameters.cx.data.[?(@.schema=~iglu:org.w3/PerformanceTiming/jsonschema/1-0-0)].data.loadEventEnd",
-            "match": "(?U)^.*$",
-            "value": 1
-          },
-          {
-            "op": "Cast",
-            "path": "$.raw.parameters.cx.data.[?(@.schema=~iglu:org.w3/PerformanceTiming/jsonschema/1-0-0)].data.domComplete",
-            "from": "Numeric",
-            "to": "Boolean"
-          },
-          {
-            "op": "Replace",
-            "path": "$.raw.parameters.cx.data.[1].data.domComplete",
-            "match": "false",
-            "value": true
-          },
-          {
-            "op": "Cast",
-            "path": "$.raw.parameters.cx.data.[?(@.data.navigationStart=~([0-9]+))].data.domComplete",
-            "from": "Boolean",
-            "to": "Numeric"
-          }
-        ]
-      },
-      {
         "name": "impossible flow",
         "conditions": [
+
+        ],
+        "steps": []
+      }
+    ],
+    "iglu:com.snowplowanalytics.snowplow.badrows/schema_violations/jsonschema/2-0-0":[
+      {
+        "name":"changeEventKey",
+        "conditions":[
           {
             "op": "Test",
-            "path": "$.processor.artifact",
+            "path": "$.failure.messages[0].error.dataReports[0].targets.[0]",
             "value": {
-              "value": "lorem-ipsum"
+              "regex": "\"agent\""
             }
           }
         ],
-        "steps": []
+        "steps":[
+          {
+            "op":"Replace",
+            "path":"$.raw.parameters.cx.data.[2].data",
+            "match":"\"agent\"",
+            "value":"\"agents\""
+          }
+        ]
       }
     ]
   }

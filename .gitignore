@@ -1,1 +1,4 @@
 target/
+.DS_Store
+.idea/
+spark/.DS_Store
